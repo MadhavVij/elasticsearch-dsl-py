@@ -142,7 +142,7 @@ class UpdateByQuery(Request):
         if self._script:
             d["script"] = self._script
 
-        d.update(recursive_to_dict(self._extra))
+        d |= recursive_to_dict(self._extra)
         d.update(recursive_to_dict(kwargs))
         return d
 

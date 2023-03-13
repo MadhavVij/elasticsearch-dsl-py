@@ -48,7 +48,7 @@ def run(*argv, expect_exit_code=0):
         os.chdir(tmp_dir)
 
     cmd = " ".join(shlex.quote(x) for x in argv)
-    print("$ " + cmd)
+    print(f"$ {cmd}")
     exit_code = os.system(cmd)
     if exit_code != expect_exit_code:
         print(
@@ -60,11 +60,9 @@ def run(*argv, expect_exit_code=0):
 
 def test_dist(dist):
     with set_tmp_dir() as tmp_dir:
-        dist_name = (
-            re.match(r"^(elasticsearch\d*[_-]dsl)-", os.path.basename(dist))
-            .group(1)
-            .replace("-", "_")
-        )
+        dist_name = re.match(
+            r"^(elasticsearch\d*[_-]dsl)-", os.path.basename(dist)
+        )[1].replace("-", "_")
 
         # Build the venv and install the dist
         run("python", "-m", "venv", os.path.join(tmp_dir, "venv"))

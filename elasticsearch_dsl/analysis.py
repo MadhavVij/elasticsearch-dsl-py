@@ -29,12 +29,12 @@ class AnalysisBase:
                 raise ValueError(f"{cls.__name__}() cannot accept parameters.")
             return name_or_instance
 
-        if not (type or kwargs):
+        if type or kwargs:
+            return cls.get_dsl_class(type, "custom")(
+                name_or_instance, type or "custom", **kwargs
+            )
+        else:
             return cls.get_dsl_class("builtin")(name_or_instance)
-
-        return cls.get_dsl_class(type, "custom")(
-            name_or_instance, type or "custom", **kwargs
-        )
 
 
 class CustomAnalysis:
@@ -64,27 +64,24 @@ class CustomAnalysisDefinition(CustomAnalysis):
         if "tokenizer" in self._param_defs and hasattr(t, "get_definition"):
             out["tokenizer"] = {t._name: t.get_definition()}
 
-        filters = {
+        if filters := {
             f._name: f.get_definition()
             for f in self.filter
             if hasattr(f, "get_definition")
-        }
-        if filters:
+        }:
             out["filter"] = filters
 
         # any sub filter definitions like multiplexers etc?
         for f in self.filter:
             if hasattr(f, "get_analysis_definition"):
-                d = f.get_analysis_definition()
-                if d:
+                if d := f.get_analysis_definition():
                     merge(out, d, True)
 
-        char_filters = {
+        if char_filters := {
             f._name: f.get_definition()
             for f in self.char_filter
             if hasattr(f, "get_definition")
-        }
-        if char_filters:
+        }:
             out["char_filter"] = char_filters
 
         return out
@@ -227,13 +224,11 @@ class MultiplexerTokenFilter(CustomTokenFilter):
         for filters in self.filters:
             if isinstance(filters, str):
                 continue
-            fs.update(
-                {
-                    f._name: f.get_definition()
-                    for f in filters
-                    if hasattr(f, "get_definition")
-                }
-            )
+            fs |= {
+                f._name: f.get_definition()
+                for f in filters
+                if hasattr(f, "get_definition")
+            }
         return d
 
 
@@ -249,16 +244,17 @@ class ConditionalTokenFilter(CustomTokenFilter):
         return d
 
     def get_analysis_definition(self):
-        if not hasattr(self, "filter"):
-            return {}
-
-        return {
-            "filter": {
-                f._name: f.get_definition()
-                for f in self.filter
-                if hasattr(f, "get_definition")
+        return (
+            {
+                "filter": {
+                    f._name: f.get_definition()
+                    for f in self.filter
+                    if hasattr(f, "get_definition")
+                }
             }
-        }
+            if hasattr(self, "filter")
+            else {}
+        )
 
 
 class CharFilter(AnalysisBase, DslBase):

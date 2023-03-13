@@ -25,12 +25,8 @@ def SF(name_or_sf, **params):
     if isinstance(name_or_sf, collections.abc.Mapping):
         if params:
             raise ValueError("SF() cannot accept parameters when passing in a dict.")
-        kwargs = {}
         sf = name_or_sf.copy()
-        for k in ScoreFunction._param_defs:
-            if k in name_or_sf:
-                kwargs[k] = sf.pop(k)
-
+        kwargs = {k: sf.pop(k) for k in ScoreFunction._param_defs if k in name_or_sf}
         # not sf, so just filter+weight, which used to be boost factor
         if not sf:
             name = "boost_factor"
@@ -45,7 +41,7 @@ def SF(name_or_sf, **params):
             params = {"value": params}
 
         # mix known params (from _param_defs) and from inside the function
-        kwargs.update(params)
+        kwargs |= params
         return ScoreFunction.get_dsl_class(name)(**kwargs)
 
     # ScriptScore(script="_score", filter=Q())

@@ -24,9 +24,7 @@ class AttrJSONSerializer(JSONSerializer):
     def default(self, data):
         if isinstance(data, AttrList):
             return data._l_
-        if hasattr(data, "to_dict"):
-            return data.to_dict()
-        return super().default(data)
+        return data.to_dict() if hasattr(data, "to_dict") else super().default(data)
 
 
 serializer = AttrJSONSerializer()

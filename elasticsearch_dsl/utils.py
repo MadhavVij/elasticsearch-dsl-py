@@ -47,9 +47,7 @@ META_FIELDS = frozenset(
 def _wrap(val, obj_wrapper=None):
     if isinstance(val, collections.abc.Mapping):
         return AttrDict(val) if obj_wrapper is None else obj_wrapper(val)
-    if isinstance(val, list):
-        return AttrList(val)
-    return val
+    return AttrList(val) if isinstance(val, list) else val
 
 
 class AttrList:
@@ -295,19 +293,15 @@ class DslBase(metaclass=DslMeta):
                 if pinfo.get("multi") and pinfo.get("hash"):
                     if not isinstance(value, (tuple, list)):
                         value = (value,)
-                    value = list(
-                        {k: shortcut(v) for (k, v) in obj.items()} for obj in value
-                    )
+                    value = [{k: shortcut(v) for (k, v) in obj.items()} for obj in value]
                 elif pinfo.get("multi"):
                     if not isinstance(value, (tuple, list)):
                         value = (value,)
                     value = list(map(shortcut, value))
 
-                # dict(name -> DslBase), make sure we pickup all the objs
                 elif pinfo.get("hash"):
                     value = {k: shortcut(v) for (k, v) in value.items()}
 
-                # single value object, just convert
                 else:
                     value = shortcut(value)
         self._params[name] = value
@@ -336,9 +330,7 @@ class DslBase(metaclass=DslMeta):
             )
 
         # wrap nested dicts in AttrDict for convenient access
-        if isinstance(value, collections.abc.Mapping):
-            return AttrDict(value)
-        return value
+        return AttrDict(value) if isinstance(value, collections.abc.Mapping) else value
 
     def to_dict(self):
         """
@@ -356,23 +348,17 @@ class DslBase(metaclass=DslMeta):
 
                 # list of dict(name -> DslBase)
                 if pinfo.get("multi") and pinfo.get("hash"):
-                    value = list(
-                        {k: v.to_dict() for k, v in obj.items()} for obj in value
-                    )
+                    value = [{k: v.to_dict() for k, v in obj.items()} for obj in value]
 
-                # multi-values are serialized as list of dicts
                 elif pinfo.get("multi"):
                     value = list(map(lambda x: x.to_dict(), value))
 
-                # squash all the hash values into one dict
                 elif pinfo.get("hash"):
                     value = {k: v.to_dict() for k, v in value.items()}
 
-                # serialize single values
                 else:
                     value = value.to_dict()
 
-            # serialize anything with to_dict method
             elif hasattr(value, "to_dict"):
                 value = value.to_dict()
 
@@ -492,11 +478,8 @@ class ObjectBase(AttrDict):
             if isinstance(v, AttrList):
                 v = v._l_
 
-            if skip_empty:
-                # don't serialize empty values
-                # careful not to include numeric zeros
-                if v in ([], {}, None):
-                    continue
+            if skip_empty and v in ([], {}, None):
+                continue
 
             out[k] = v
         return out

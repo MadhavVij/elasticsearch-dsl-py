@@ -39,14 +39,12 @@ def construct_field(name_or_field, **params):
                 "construct_field() cannot accept parameters when passing in a dict."
             )
         params = name_or_field.copy()
-        if "type" not in params:
-            # inner object can be implicitly defined
-            if "properties" in params:
-                name = "object"
-            else:
-                raise ValueError('construct_field() needs to have a "type" key.')
-        else:
+        if "type" in params:
             name = params.pop("type")
+        elif "properties" in params:
+            name = "object"
+        else:
+            raise ValueError('construct_field() needs to have a "type" key.')
         return Field.get_dsl_class(name)(**params)
 
     # Text()
@@ -92,9 +90,7 @@ class Field(DslBase):
         return None
 
     def empty(self):
-        if self._multi:
-            return AttrList([])
-        return self._empty()
+        return AttrList([]) if self._multi else self._empty()
 
     def serialize(self, data):
         if isinstance(data, (list, AttrList, tuple)):
@@ -105,9 +101,7 @@ class Field(DslBase):
         if isinstance(data, (list, AttrList, tuple)):
             data = [None if d is None else self._deserialize(d) for d in data]
             return data
-        if data is None:
-            return None
-        return self._deserialize(data)
+        return None if data is None else self._deserialize(data)
 
     def clean(self, data):
         if data is not None:
@@ -186,9 +180,7 @@ class Object(Field):
         return self._doc_class.from_es(data, data_only=True)
 
     def empty(self):
-        if self._multi:
-            return AttrList([], self._wrap)
-        return self._empty()
+        return AttrList([], self._wrap) if self._multi else self._empty()
 
     def to_dict(self):
         d = self._mapping.to_dict()
@@ -213,10 +205,7 @@ class Object(Field):
             return None
 
         # somebody assigned raw dict to the field, we should tolerate that
-        if isinstance(data, collections.abc.Mapping):
-            return data
-
-        return data.to_dict()
+        return data if isinstance(data, collections.abc.Mapping) else data.to_dict()
 
     def clean(self, data):
         data = super().clean(data)
@@ -318,9 +307,7 @@ class Boolean(Field):
     _coerce = True
 
     def _deserialize(self, data):
-        if data == "false":
-            return False
-        return bool(data)
+        return False if data == "false" else bool(data)
 
     def clean(self, data):
         if data is not None:
@@ -402,9 +389,7 @@ class Ip(Field):
         return ipaddress.ip_address(unicode(data))
 
     def _serialize(self, data):
-        if data is None:
-            return None
-        return str(data)
+        return None if data is None else str(data)
 
 
 class Binary(Field):
@@ -420,9 +405,7 @@ class Binary(Field):
         return base64.b64decode(data)
 
     def _serialize(self, data):
-        if data is None:
-            return None
-        return base64.b64encode(data).decode()
+        return None if data is None else base64.b64encode(data).decode()
 
 
 class GeoPoint(Field):
@@ -449,9 +432,7 @@ class Percolator(Field):
         return Q(data)
 
     def _serialize(self, data):
-        if data is None:
-            return None
-        return data.to_dict()
+        return None if data is None else data.to_dict()
 
 
 class RangeField(Field):

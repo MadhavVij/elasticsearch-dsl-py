@@ -20,9 +20,7 @@ from ..utils import AttrDict, HitMeta
 
 class Hit(AttrDict):
     def __init__(self, document):
-        data = {}
-        if "_source" in document:
-            data = document["_source"]
+        data = document["_source"] if "_source" in document else {}
         if "fields" in document:
             data.update(document["fields"])
 

@@ -39,15 +39,12 @@ SOURCE_FILES = (
 def test(session):
     session.install(".[develop]")
 
-    if session.posargs:
-        argv = session.posargs
-    else:
-        argv = (
-            "-vvv",
-            "--cov=elasticsearch_dsl",
-            "--cov=tests.test_integration.test_examples",
-            "tests/",
-        )
+    argv = session.posargs or (
+        "-vvv",
+        "--cov=elasticsearch_dsl",
+        "--cov=tests.test_integration.test_examples",
+        "tests/",
+    )
     session.run("pytest", *argv)
 
 

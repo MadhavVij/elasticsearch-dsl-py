@@ -23,10 +23,8 @@ VERSION = (8, 0, 0)
 __version__ = VERSION
 __versionstr__ = ".".join(map(str, VERSION))
 
-f = open(join(dirname(__file__), "README"))
-long_description = f.read().strip()
-f.close()
-
+with open(join(dirname(__file__), "README")) as f:
+    long_description = f.read().strip()
 install_requires = [
     "python-dateutil",
     "elasticsearch>=7.0.0,<8.0.0",

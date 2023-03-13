@@ -53,7 +53,9 @@ def es_version(client):
     print(info)
     yield tuple(
         int(x)
-        for x in re.match(r"^([0-9.]+)", info["version"]["number"]).group(1).split(".")
+        for x in re.match(r"^([0-9.]+)", info["version"]["number"])[1].split(
+            "."
+        )
     )
 
 

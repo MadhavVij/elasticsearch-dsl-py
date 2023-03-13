@@ -115,11 +115,7 @@ class AggBase:
         agg = self[name] = A(agg_type, *args, **params)
 
         # For chaining - when creating new buckets return them...
-        if bucket:
-            return agg
-        # otherwise return self._base so we can keep chaining
-        else:
-            return self._base
+        return agg if bucket else self._base
 
     def metric(self, name, agg_type, *args, **params):
         return self._agg(False, name, agg_type, *args, **params)

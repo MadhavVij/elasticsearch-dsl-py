@@ -96,9 +96,7 @@ class Index:
             field = doc._doc_type.mapping.resolve_field(field_path)
             if field is not None:
                 return field
-        if self._mapping:
-            return self._mapping.resolve_field(field_path)
-        return None
+        return self._mapping.resolve_field(field_path) if self._mapping else None
 
     def load_mappings(self, using=None):
         self.get_or_create_mapping().update_from_es(
@@ -218,13 +216,11 @@ class Index:
 
         """
         analyzer = analysis.analyzer(*args, **kwargs)
-        d = analyzer.get_analysis_definition()
-        # empty custom analyzer, probably already defined out of our control
-        if not d:
+        if d := analyzer.get_analysis_definition():
+            # merge the definition
+            merge(self._analysis, d, True)
+        else:
             return
-
-        # merge the definition
-        merge(self._analysis, d, True)
 
     def to_dict(self):
         out = {}
@@ -320,8 +316,7 @@ class Index:
                     for k in analysis[section]
                 ):
                     raise IllegalOperation(
-                        "You cannot update analysis configuration on an open index, "
-                        "you need to close index %s first." % self._name
+                        f"You cannot update analysis configuration on an open index, you need to close index {self._name} first."
                     )
 
         # try and update the settings
@@ -331,13 +326,10 @@ class Index:
                 if k in current_settings and current_settings[k] == str(v):
                     del settings[k]
 
-            if settings:
-                self.put_settings(using=using, body=settings)
+        if settings:
+            self.put_settings(using=using, body=settings)
 
-        # update the mappings, any conflict in the mappings will result in an
-        # exception
-        mappings = body.pop("mappings", {})
-        if mappings:
+        if mappings := body.pop("mappings", {}):
             self.put_mapping(using=using, body=mappings)
 
     def analyze(self, using=None, **kwargs):

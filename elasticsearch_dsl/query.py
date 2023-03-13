@@ -181,19 +181,12 @@ class Bool(Query):
         if not any(chain(self.must, self.filter, self.should, self.must_not)):
             return MatchNone()
 
-        negations = []
-        for q in chain(self.must, self.filter):
-            negations.append(~q)
-
-        for q in self.must_not:
-            negations.append(q)
-
+        negations = [~q for q in chain(self.must, self.filter)]
+        negations.extend(iter(self.must_not))
         if self.should and self._min_should_match:
             negations.append(Bool(must_not=self.should[:]))
 
-        if len(negations) == 1:
-            return negations[0]
-        return Bool(should=negations)
+        return negations[0] if len(negations) == 1 else Bool(should=negations)
 
     def __and__(self, other):
         q = self._clone()
@@ -226,7 +219,7 @@ class Bool(Query):
                         Bool(should=qx.should, minimum_should_match=min_should_match)
                     )
         else:
-            if not (q.must or q.filter) and q.should:
+            if not q.must and not q.filter and q.should:
                 q._params.setdefault("minimum_should_match", 1)
             q.must.append(other)
         return q
@@ -243,9 +236,7 @@ class FunctionScore(Query):
     }
 
     def __init__(self, **kwargs):
-        if "functions" in kwargs:
-            pass
-        else:
+        if "functions" not in kwargs:
             fns = kwargs["functions"] = []
             for name in ScoreFunction._classes:
                 if name in kwargs:

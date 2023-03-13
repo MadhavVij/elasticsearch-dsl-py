@@ -45,7 +45,7 @@ class Commit(Document):
 
 def test_filters_aggregation_buckets_are_accessible(data_client):
     has_tests_query = Q("term", files="test_elasticsearch_dsl")
-    s = Commit.search()[0:0]
+    s = Commit.search()[:0]
     s.aggs.bucket("top_authors", "terms", field="author.name.raw").bucket(
         "has_tests", "filters", filters={"yes": has_tests_query, "no": ~has_tests_query}
     ).metric("lines", "stats", field="stats.lines")
@@ -65,7 +65,7 @@ def test_filters_aggregation_buckets_are_accessible(data_client):
 
 
 def test_top_hits_are_wrapped_in_response(data_client):
-    s = Commit.search()[0:0]
+    s = Commit.search()[:0]
     s.aggs.bucket("top_authors", "terms", field="author.name.raw").metric(
         "top_commits", "top_hits", size=5
     )
@@ -75,13 +75,13 @@ def test_top_hits_are_wrapped_in_response(data_client):
     assert isinstance(top_commits, aggs.TopHitsData)
     assert 5 == len(top_commits)
 
-    hits = [h for h in top_commits]
+    hits = list(top_commits)
     assert 5 == len(hits)
     assert isinstance(hits[0], Commit)
 
 
 def test_inner_hits_are_wrapped_in_response(data_client):
-    s = Search(index="git")[0:1].query(
+    s = Search(index="git")[:1].query(
         "has_parent", parent_type="repo", inner_hits={}, query=Q("match_all")
     )
     response = s.execute()
@@ -159,7 +159,7 @@ def test_multi_missing(data_client):
 
 
 def test_raw_subfield_can_be_used_in_aggs(data_client):
-    s = Search(index="git")[0:0]
+    s = Search(index="git")[:0]
     s.aggs.bucket("authors", "terms", field="author.name.raw", size=1)
 
     r = s.execute()

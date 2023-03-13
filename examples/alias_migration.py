@@ -35,13 +35,14 @@ Key concepts:
       will have index set to the concrete index whereas the class refers to the
       alias.
 """
+
 from datetime import datetime
 from fnmatch import fnmatch
 
 from elasticsearch_dsl import Date, Document, Keyword, Text, connections
 
 ALIAS = "test-blog"
-PATTERN = ALIAS + "-*"
+PATTERN = f"{ALIAS}-*"
 
 
 class BlogPost(Document):

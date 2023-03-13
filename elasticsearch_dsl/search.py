@@ -210,10 +210,7 @@ class Request:
         else:
             nested_field = self._resolve_field(nested_path)
 
-        if nested_field is not None:
-            return nested_field._doc_class
-
-        return doc_class
+        return nested_field._doc_class if nested_field is not None else doc_class
 
     def _get_result(self, hit, parent_class=None):
         doc_class = Hit
@@ -256,13 +253,13 @@ class Request:
         """
         # .doc_type() resets
         s = self._clone()
-        if not doc_type and not kwargs:
-            s._doc_type = []
-            s._doc_type_map = {}
-        else:
+        if doc_type or kwargs:
             s._doc_type.extend(doc_type)
             s._doc_type.extend(kwargs.keys())
             s._doc_type_map.update(kwargs)
+        else:
+            s._doc_type = []
+            s._doc_type_map = {}
         return s
 
     def using(self, client):
@@ -365,14 +362,14 @@ class Search(Request):
             s._extra["size"] = max(
                 0, n.stop - (n.start or 0) if n.stop is not None else 10
             )
-            return s
         else:  # This is an index lookup, equivalent to slicing by [n:n+1].
             # If negative index, abort.
             if n < 0:
                 raise ValueError("Search does not support negative indexing.")
             s._extra["from"] = n
             s._extra["size"] = 1
-            return s
+
+        return s
 
     @classmethod
     def from_dict(cls, d):
@@ -438,8 +435,7 @@ class Search(Request):
         if "post_filter" in d:
             self.post_filter._proxied = Q(d.pop("post_filter"))
 
-        aggs = d.pop("aggs", d.pop("aggregations", {}))
-        if aggs:
+        if aggs := d.pop("aggs", d.pop("aggregations", {})):
             self.aggs._params = {
                 "aggs": {name: A(value) for (name, value) in aggs.items()}
             }
@@ -658,7 +654,7 @@ class Search(Request):
                 d["post_filter"] = self.post_filter.to_dict()
 
             if self.aggs.aggs:
-                d.update(self.aggs.to_dict())
+                d |= self.aggs.to_dict()
 
             if self._sort:
                 d["sort"] = self._sort
@@ -777,11 +773,9 @@ class MultiSearch(Request):
             meta = {}
             if s._index:
                 meta["index"] = s._index
-            meta.update(s._params)
+            meta |= s._params
 
-            out.append(meta)
-            out.append(s.to_dict())
-
+            out.extend((meta, s.to_dict()))
         return out
 
     def execute(self, ignore_cache=False, raise_on_error=True):

@@ -209,7 +209,7 @@ class Mapping:
 
     def meta(self, name, params=None, **kwargs):
         if not name.startswith("_") and name not in META_FIELDS:
-            name = "_" + name
+            name = f"_{name}"
 
         if params and kwargs:
             raise ValueError("Meta configs cannot have both value and a dictionary.")

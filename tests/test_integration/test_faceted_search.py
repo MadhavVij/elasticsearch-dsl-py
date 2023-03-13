@@ -274,7 +274,7 @@ def test_range_filters_are_shown_as_selected_and_data_is_filtered(
 
 def test_pagination(data_client, commit_search_cls):
     cs = commit_search_cls()
-    cs = cs[0:20]
+    cs = cs[:20]
 
     assert 52 == cs.count()
     assert 20 == len(cs.execute())

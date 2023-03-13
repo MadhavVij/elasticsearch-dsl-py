@@ -194,9 +194,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
         """
         es = cls._get_connection(using)
         doc = es.get(index=cls._default_index(index), id=id, **kwargs)
-        if not doc.get("found", False):
-            return None
-        return cls.from_es(doc)
+        return cls.from_es(doc) if doc.get("found", False) else None
 
     @classmethod
     def exists(cls, id, using=None, index=None, **kwargs):
@@ -299,7 +297,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
             doc_meta["if_seq_no"] = self.meta["seq_no"]
             doc_meta["if_primary_term"] = self.meta["primary_term"]
 
-        doc_meta.update(kwargs)
+        doc_meta |= kwargs
         es.delete(index=self._get_index(index), **doc_meta)
 
     def to_dict(self, include_meta=False, skip_empty=True):
@@ -318,7 +316,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
         if not include_meta:
             return d
 
-        meta = {"_" + k: self.meta[k] for k in DOC_META_FIELDS if k in self.meta}
+        meta = {f"_{k}": self.meta[k] for k in DOC_META_FIELDS if k in self.meta}
 
         # in case of to_dict include the index unlike save/update/delete
         index = self._get_index(required=False)
@@ -381,17 +379,12 @@ class Document(ObjectBase, metaclass=IndexMeta):
             if upsert is not None:
                 body["upsert"] = upsert
 
-            if script:
-                script = {"source": script}
-            else:
-                script = {"id": script_id}
-
+            script = {"source": script} if script else {"id": script_id}
             script["params"] = fields
 
             body["script"] = script
             body["scripted_upsert"] = scripted_upsert
 
-        # partial document update
         else:
             if not fields:
                 raise IllegalOperation(
@@ -406,7 +399,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
             values = self.to_dict()
 
             # if fields were given: partial update
-            body["doc"] = {k: values.get(k) for k in fields.keys()}
+            body["doc"] = {k: values.get(k) for k in fields}
 
         # extract routing etc from meta
         doc_meta = {k: self.meta[k] for k in DOC_META_FIELDS if k in self.meta}
@@ -428,8 +421,8 @@ class Document(ObjectBase, metaclass=IndexMeta):
         )
         # update meta information from ES
         for k in META_FIELDS:
-            if "_" + k in meta:
-                setattr(self.meta, k, meta["_" + k])
+            if f"_{k}" in meta:
+                setattr(self.meta, k, meta[f"_{k}"])
 
         return meta if return_doc_meta else meta["result"]
 
@@ -474,7 +467,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
             doc_meta["if_seq_no"] = self.meta["seq_no"]
             doc_meta["if_primary_term"] = self.meta["primary_term"]
 
-        doc_meta.update(kwargs)
+        doc_meta |= kwargs
         meta = es.index(
             index=self._get_index(index),
             body=self.to_dict(skip_empty=skip_empty),
@@ -482,7 +475,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
         )
         # update meta information from ES
         for k in META_FIELDS:
-            if "_" + k in meta:
-                setattr(self.meta, k, meta["_" + k])
+            if f"_{k}" in meta:
+                setattr(self.meta, k, meta[f"_{k}"])
 
         return meta if return_doc_meta else meta["result"]

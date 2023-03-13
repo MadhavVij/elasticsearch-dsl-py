@@ -92,9 +92,7 @@ class Facet:
         """
         Return a metric, by default doc_count for a bucket.
         """
-        if self._metric:
-            return bucket["metric"]["value"]
-        return bucket["doc_count"]
+        return bucket["metric"]["value"] if self._metric else bucket["doc_count"]
 
     def get_values(self, data, filter_values):
         """
@@ -209,15 +207,14 @@ class DateHistogramFacet(Facet):
         super().__init__(**kwargs)
 
     def get_value(self, bucket):
-        if not isinstance(bucket["key"], datetime):
-            # Elasticsearch returns key=None instead of 0 for date 1970-01-01,
-            # so we need to set key to 0 to avoid TypeError exception
-            if bucket["key"] is None:
-                bucket["key"] = 0
-            # Preserve milliseconds in the datetime
-            return datetime.utcfromtimestamp(int(bucket["key"]) / 1000.0)
-        else:
+        if isinstance(bucket["key"], datetime):
             return bucket["key"]
+        # Elasticsearch returns key=None instead of 0 for date 1970-01-01,
+        # so we need to set key to 0 to avoid TypeError exception
+        if bucket["key"] is None:
+            bucket["key"] = 0
+        # Preserve milliseconds in the datetime
+        return datetime.utcfromtimestamp(int(bucket["key"]) / 1000.0)
 
     def get_value_filter(self, filter_value):
         for interval_type in ("calendar_interval", "fixed_interval"):
@@ -251,8 +248,7 @@ class NestedFacet(Facet):
         return self._inner.get_values(data.inner, filter_values)
 
     def add_filter(self, filter_values):
-        inner_q = self._inner.add_filter(filter_values)
-        if inner_q:
+        if inner_q := self._inner.add_filter(filter_values):
             return Nested(path=self._path, query=inner_q)
 
 
@@ -267,7 +263,7 @@ class FacetedResponse(Response):
             super(AttrDict, self).__setattr__("_facets", AttrDict({}))
             for name, facet in self._faceted_search.facets.items():
                 self._facets[name] = facet.get_values(
-                    getattr(getattr(self.aggregations, "_filter_" + name), name),
+                    getattr(getattr(self.aggregations, f"_filter_{name}"), name),
                     self._faceted_search.filter_values.get(name, ()),
                 )
         return self._facets
@@ -403,9 +399,7 @@ class FacetedSearch:
                 if f == field:
                     continue
                 agg_filter &= filter
-            search.aggs.bucket("_filter_" + f, "filter", filter=agg_filter).bucket(
-                f, agg
-            )
+            search.aggs.bucket(f"_filter_{f}", "filter", filter=agg_filter).bucket(f, agg)
 
     def filter(self, search):
         """

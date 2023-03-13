@@ -56,8 +56,7 @@ class BucketData(AggResponse):
     @property
     def buckets(self):
         if not hasattr(self, "_buckets"):
-            field = getattr(self._meta["aggs"], "field", None)
-            if field:
+            if field := getattr(self._meta["aggs"], "field", None):
                 self._meta["field"] = self._meta["search"]._resolve_field(field)
             bs = self._d_["buckets"]
             if isinstance(bs, list):

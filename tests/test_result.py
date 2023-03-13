@@ -111,7 +111,7 @@ def test_len_response(dummy_response):
 
 def test_iterating_over_response_gives_you_hits(dummy_response):
     res = response.Response(Search(), dummy_response)
-    hits = list(h for h in res)
+    hits = list(res)
 
     assert res.success()
     assert 123 == res.took
@@ -168,7 +168,7 @@ def test_metric_agg_works(agg_response):
 
 
 def test_aggregations_can_be_iterated_over(agg_response):
-    aggs = [a for a in agg_response.aggs]
+    aggs = list(agg_response.aggs)
 
     assert len(aggs) == 3
     assert all(map(lambda a: isinstance(a, AggResponse), aggs))
@@ -185,7 +185,7 @@ def test_aggregations_can_be_retrieved_by_name(agg_response, aggs_search):
 def test_bucket_response_can_be_iterated_over(agg_response):
     popular_files = agg_response.aggregations.popular_files
 
-    buckets = [b for b in popular_files]
+    buckets = list(popular_files)
     assert all(isinstance(b, Bucket) for b in buckets)
     assert buckets == popular_files.buckets
 

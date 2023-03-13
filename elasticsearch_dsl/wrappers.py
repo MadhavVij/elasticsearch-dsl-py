@@ -50,29 +50,25 @@ class Range(AttrDict):
         super().__init__(args[0] if args else kwargs)
 
     def __repr__(self):
-        return "Range(%s)" % ", ".join("%s=%r" % op for op in self._d_.items())
+        return f'Range({", ".join("%s=%r" % op for op in self._d_.items())})'
 
     def __contains__(self, item):
         if isinstance(item, str):
             return super().__contains__(item)
 
-        for op in self.OPS:
-            if op in self._d_ and not self.OPS[op](item, self._d_[op]):
-                return False
-        return True
+        return not any(
+            op in self._d_ and not self.OPS[op](item, self._d_[op])
+            for op in self.OPS
+        )
 
     @property
     def upper(self):
         if "lt" in self._d_:
             return self._d_["lt"], False
-        if "lte" in self._d_:
-            return self._d_["lte"], True
-        return None, False
+        return (self._d_["lte"], True) if "lte" in self._d_ else (None, False)
 
     @property
     def lower(self):
         if "gt" in self._d_:
             return self._d_["gt"], False
-        if "gte" in self._d_:
-            return self._d_["gte"], True
-        return None, False
+        return (self._d_["gte"], True) if "gte" in self._d_ else (None, False)

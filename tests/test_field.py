@@ -54,12 +54,12 @@ def test_date_field_can_have_default_tz():
     now_with_tz = f._deserialize(now)
 
     assert now_with_tz.tzinfo == tz.gettz("UTC")
-    assert now.isoformat() + "+00:00" == now_with_tz.isoformat()
+    assert f"{now.isoformat()}+00:00" == now_with_tz.isoformat()
 
     now_with_tz = f._deserialize(now.isoformat())
 
     assert now_with_tz.tzinfo == tz.gettz("UTC")
-    assert now.isoformat() + "+00:00" == now_with_tz.isoformat()
+    assert f"{now.isoformat()}+00:00" == now_with_tz.isoformat()
 
 
 def test_custom_field_car_wrap_other_field():
